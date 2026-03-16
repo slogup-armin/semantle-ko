@@ -83,22 +83,19 @@
                         <input type="checkbox" name="dark-mode" value="dark-mode" id="dark-mode" />
                         <label for="dark-mode">다크 모드</label>
                     </div>
-                    <div>
-                        <input type="checkbox" name="share-guesses" value="share-guesses" id="share-guesses" />
-                        <label for="share-guesses">결과 공유 텍스트에 추측 횟수 표시하기</label>
-                    </div>
-                    <div>
-                        <input type="checkbox" name="share-time" value="share-time" id="share-time" />
-                        <label for="share-time">결과 공유 텍스트에 걸린 시간 표시하기</label>
-                    </div>
-                    <div>
-                        <input type="checkbox" name="share-top-guess" value="share-top-guess" id="share-top-guess" />
-                        <label for="share-top-guess">결과 공유 텍스트에 최대 유사도 표시하기</label>
-                    </div>
                 </div>
             </div>
         </div>
         <p id="similarity-story"></p>
+        <div id="user-id-panel">
+            <label for="user-id-input">사용자 ID</label>
+            <div>
+                <input type="text" id="user-id-input" maxlength="20" placeholder="표시할 ID를 입력하세요">
+                <button type="button" id="user-id-save" class="button">저장</button>
+            </div>
+            <p id="user-id-display"></p>
+        </div>
+        <p>아래 목록은 오늘 검색된 단어를 유사도 순으로 보여주며, 각 단어 옆에는 최초 검색자의 ID가 표시됩니다.</p>
         <div id="error" style="color:#ff0000"></div>
         <form id="form" autocorrect="off" autocapitalize="none" autocomplete="off">
             <div id="form-row">
@@ -111,9 +108,9 @@
             </div>
         </form>
         <div id="response"></div>
-        <div style="display:none">
-            <input type="text" id="share" />
-        </div>
+        <h3>랭킹</h3>
+        <div id="leaderboard"></div>
+        <h3>공유 검색 목록</h3>
         <table id="guesses">
         </table>
 

@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from flask import (
     Flask,
+    request,
     send_file,
     send_from_directory,
     jsonify,
@@ -31,12 +32,14 @@ with open('data/secrets.txt', 'r', encoding='utf-8') as f:
 print("initializing nearest words for solutions")
 app.secrets = dict()
 app.nearests = dict()
+app.shared_guesses = dict()
 current_puzzle = (utc.localize(datetime.utcnow()).astimezone(KST).date() - FIRST_DAY).days % NUM_SECRETS
 for offset in range(-2, 2):
     puzzle_number = (current_puzzle + offset) % NUM_SECRETS
     secret_word = secrets[puzzle_number]
     app.secrets[puzzle_number] = secret_word
     app.nearests[puzzle_number] = get_nearest(puzzle_number, secret_word, valid_nearest_words, valid_nearest_vecs)
+    app.shared_guesses[puzzle_number] = dict()
 
 
 @scheduler.scheduled_job(trigger=CronTrigger(hour=1, minute=0, timezone=KST))
@@ -49,8 +52,24 @@ def update_nearest():
         del app.secrets[to_delete]
     if to_delete in app.nearests:
         del app.nearests[to_delete]
+    if to_delete in app.shared_guesses:
+        del app.shared_guesses[to_delete]
     app.secrets[next_puzzle] = next_word
     app.nearests[next_puzzle] = get_nearest(next_puzzle, next_word, valid_nearest_words, valid_nearest_vecs)
+    app.shared_guesses[next_puzzle] = dict()
+
+
+def build_guess_response(day: int, word: str) -> dict:
+    if app.secrets[day] == word:
+        word = app.secrets[day]
+    rtn = {"guess": word}
+    if day in app.nearests and word in app.nearests[day]:
+        rtn["sim"] = app.nearests[day][word][1]
+        rtn["rank"] = app.nearests[day][word][0]
+    else:
+        rtn["sim"] = word2vec.similarity(app.secrets[day], word)
+        rtn["rank"] = "1000위 이상"
+    return rtn
 
 
 @app.route('/')
@@ -75,22 +94,31 @@ def send_static(path):
 
 @app.route('/guess/<int:day>/<string:word>')
 def get_guess(day: int, word: str):
-    # print(app.secrets[day])
-    # remove lower(), unnecessary to korean
-    if app.secrets[day] == word:
-        word = app.secrets[day]
-    rtn = {"guess": word}
-    # check most similar
-    if day in app.nearests and word in app.nearests[day]:
-        rtn["sim"] = app.nearests[day][word][1]
-        rtn["rank"] = app.nearests[day][word][0]
-    else:
-        try:
-            rtn["sim"] = word2vec.similarity(app.secrets[day], word)
-            rtn["rank"] = "1000위 이상"
-        except KeyError:
-            return jsonify({"error": "unknown"}), 404
-    return jsonify(rtn)
+    user_id = (request.args.get('user_id', '').strip() or '익명')[:32]
+    try:
+        computed = build_guess_response(day, word)
+    except KeyError:
+        return jsonify({"error": "unknown"}), 404
+
+    shared_day = app.shared_guesses.setdefault(day, dict())
+    entry = {
+        **computed,
+        "first_user_id": user_id,
+        "created_at": datetime.now(KST).isoformat()
+    }
+    actual = shared_day.setdefault(computed["guess"], entry)
+    return jsonify(actual)
+
+
+@app.route('/state/<int:day>')
+def get_state(day: int):
+    if day not in app.shared_guesses:
+        return jsonify({"guesses": []})
+    guesses = [
+        dict(entry, order=index + 1)
+        for index, entry in enumerate(app.shared_guesses[day].values())
+    ]
+    return jsonify({"guesses": guesses})
 
 
 @app.route('/similarity/<int:day>')
