@@ -21,16 +21,6 @@
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="manifest" href="/assets/manifest.webmanifest">
 
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y0ED7GGKGN"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-
-        gtag('config', 'G-Y0ED7GGKGN');
-    </script>
-
     <!--
     Copyright (c) 2022, Newsjelly, forked from Semantlich by Johannes Gätjen semantlich.johannesgaetjen.de and Semantle by David Turner <novalis@novalis.org> semantle.novalis.org
 
@@ -88,11 +78,12 @@
         </div>
         <p id="similarity-story"></p>
         <div id="user-id-panel">
-            <label for="user-id-input">사용자 ID</label>
+            <label for="user-id-input">사용자 ID <span class="user-id-badge">한글만 가능</span></label>
             <div>
-                <input type="text" id="user-id-input" maxlength="20" placeholder="표시할 ID를 입력하세요">
+                <input type="text" id="user-id-input" maxlength="10" placeholder="한글로 ID를 입력하세요" inputmode="text">
                 <button type="button" id="user-id-save" class="button">저장</button>
             </div>
+            <p class="user-id-help">사용자 ID는 한글만 입력할 수 있습니다.</p>
             <p id="user-id-display"></p>
         </div>
         <p>아래 목록은 오늘 검색된 단어를 유사도 순으로 보여주며, 각 단어 옆에는 최초 검색자의 ID가 표시됩니다.</p>
@@ -115,7 +106,7 @@
         </table>
 
         <div class="give-up-btn-wrapper">
-            <!-- <input type="button" value="포기하기" id="give-up-btn" class="button"> -->
+            <input type="button" value="포기하기 (비활성화)" id="give-up-btn" class="button" disabled>
             <a class="bottom-banner"
                 href="https://newsjel.ly/archives/newsjelly-report/data-storytelling/14842?utm_source=semantle_ko&utm_medium=bottom_banner"
                 target="_blank">정답을 모르겠다면? 꼬맨틀 공략집</a>

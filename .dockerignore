@@ -1,0 +1,9 @@
+.git
+.DS_Store
+__pycache__/
+.cache/
+*.pyc
+data/cc.ko.300.vec
+data/valid_guesses.db
+data/valid_nearest.dat
+data/near/

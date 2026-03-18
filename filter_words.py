@@ -1,6 +1,8 @@
+from huggingface_hub import snapshot_download
 from transformers import TextClassificationPipeline, BertForSequenceClassification, AutoTokenizer
 import tqdm
 import unicodedata
+import os
 
 def get_predicated_label(output_labels, min_score):
     for label in output_labels:
@@ -12,11 +14,20 @@ def get_predicated_label(output_labels, min_score):
     }
             
 
+def resolve_model_path(model_name: str) -> str:
+    return snapshot_download(
+        repo_id=model_name,
+        ignore_patterns=['*.h5', '*.ot', '*.msgpack'],
+    )
+
+
 if __name__ == '__main__':
     model_name = 'smilegate-ai/kor_unsmile'
+    model_path = resolve_model_path(model_name)
+    batch_size = int(os.getenv('FILTER_WORDS_BATCH_SIZE', '32'))
 
-    model = BertForSequenceClassification.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = BertForSequenceClassification.from_pretrained(model_path)
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
 
     pipe = TextClassificationPipeline(
         model=model,
@@ -31,7 +42,7 @@ if __name__ == '__main__':
         words = list(unicodedata.normalize('NFC', line.strip()) for line in tqdm.tqdm(f))
     filtered_words = []
 
-    for index, out in enumerate(tqdm.tqdm(pipe(x for x in words), total=len(words))):
+    for index, out in enumerate(tqdm.tqdm(pipe((x for x in words), batch_size=batch_size), total=len(words))):
         label = get_predicated_label(out, 0.5)
         try:
             if label['label'] == 'clean':
@@ -46,10 +57,14 @@ if __name__ == '__main__':
 
     # dictionary
     with open('data/ko-aff-dic-0.7.92/ko.dic', 'r', encoding='UTF-8') as f:
-        words = list(unicodedata.normalize('NFC', line.strip().split('/')[0]) for line in tqdm.tqdm(f))
+        words = []
+        for index, line in enumerate(tqdm.tqdm(f)):
+            if index == 0:
+                continue
+            words.append(unicodedata.normalize('NFC', line.strip().split('/')[0]))
     filtered_words = []
 
-    for index, out in enumerate(tqdm.tqdm(pipe(x for x in words), total=len(words))):
+    for index, out in enumerate(tqdm.tqdm(pipe((x for x in words), batch_size=batch_size), total=len(words))):
         label = get_predicated_label(out, 0.5)
         try:
             if label['label'] == 'clean':

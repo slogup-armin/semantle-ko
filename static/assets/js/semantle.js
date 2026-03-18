@@ -13,6 +13,7 @@ let sharedGuesses = [];
 let similarityStory = null;
 let chronoForward = 1;
 let guessSortMode = 'similarity';
+let isComposingUserId = false;
 
 const numPuzzles = 4650;
 const initialDate = new Date('2022-04-01T00:00:00+09:00');
@@ -32,7 +33,7 @@ function makeRandomSuffix() {
 }
 
 function normalizeNickname(value) {
-    return value.trim().replaceAll(' ', '').replace(/[^0-9A-Za-z가-힣_-]/g, '').substring(0, 20);
+    return value.trim().replaceAll(' ', '').replace(/[^가-힣]/g, '').substring(0, 10);
 }
 
 function getStoredUserId() {
@@ -53,9 +54,10 @@ function buildUserId(nickname) {
 
 function saveUserId() {
     const input = $('#user-id-input');
+    input.value = normalizeNickname(input.value);
     const nextUserId = buildUserId(input.value);
     if (nextUserId == null) {
-        $('#error').textContent = '사용자 ID를 입력하세요.';
+        $('#error').textContent = '사용자 ID는 한글만 입력할 수 있습니다.';
         input.focus();
         return null;
     }
@@ -86,7 +88,7 @@ function updateUserIdPromptState() {
 function setUserIdDisplay() {
     const userId = getStoredUserId();
     if (userId == null) {
-        $('#user-id-display').textContent = '사용할 ID를 입력하고 저장하세요.';
+        $('#user-id-display').textContent = '';
         $('#user-id-input').value = '';
         updateUserIdPromptState();
         return;
@@ -270,6 +272,19 @@ function openSettings() {
 
 async function init() {
     setUserIdDisplay();
+    $('#user-id-input').addEventListener('input', function(event) {
+        if (isComposingUserId) {
+            return;
+        }
+        event.target.value = normalizeNickname(event.target.value);
+    });
+    $('#user-id-input').addEventListener('compositionstart', function() {
+        isComposingUserId = true;
+    });
+    $('#user-id-input').addEventListener('compositionend', function(event) {
+        isComposingUserId = false;
+        event.target.value = normalizeNickname(event.target.value);
+    });
     $('#user-id-save').addEventListener('click', function() {
         saveUserId();
     });
