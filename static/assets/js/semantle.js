@@ -14,11 +14,15 @@ let similarityStory = null;
 let chronoForward = 1;
 let guessSortMode = 'similarity';
 let isComposingUserId = false;
+let hasSuccessfulSharedSync = false;
+let sharedStatePollTimer = null;
+let sharedStateSyncPromise = null;
 
 const numPuzzles = 4650;
 const initialDate = new Date('2022-04-01T00:00:00+09:00');
 const puzzleNumber = Math.floor((new Date() - initialDate) / 86400000) % numPuzzles;
 const yesterdayPuzzleNumber = (puzzleNumber + numPuzzles - 1) % numPuzzles;
+const sharedStatePollMs = 5000;
 const storage = window.localStorage;
 const userIdStorageKey = 'sharedUserId';
 let darkMode = storage.getItem('darkMode') === 'true';
@@ -96,6 +100,42 @@ function setUserIdDisplay() {
     $('#user-id-input').value = userId.split('#')[0];
     $('#user-id-display').innerHTML = `현재 사용자 ID: <b>${userId}</b>`;
     updateUserIdPromptState();
+}
+
+function setGuessInputEnabled(enabled) {
+    $('#guess').disabled = !enabled;
+    $('#guess-btn').disabled = !enabled;
+}
+
+function setServerOverlayVisible(visible) {
+    const overlay = $('#server-overlay');
+    overlay.hidden = !visible;
+    overlay.setAttribute('aria-hidden', String(!visible));
+    document.body.classList.toggle('server-offline', visible);
+}
+
+function setServerStatus(state, message = '') {
+    const status = $('#server-status');
+    status.className = `server-status ${state}`;
+    status.textContent = message;
+    status.hidden = state === 'online';
+    setGuessInputEnabled(state === 'online');
+    setServerOverlayVisible(state === 'offline');
+}
+
+function markServerOffline() {
+    const retrySeconds = Math.floor(sharedStatePollMs / 1000);
+    const message = hasSuccessfulSharedSync
+        ? `서버 연결이 끊어졌습니다. ${retrySeconds}초마다 다시 시도합니다.`
+        : '서버에 연결할 수 없습니다. 잠시 후 다시 시도합니다.';
+    setServerStatus('offline', message);
+}
+
+function scheduleNextSharedSync(delay = sharedStatePollMs) {
+    window.clearTimeout(sharedStatePollTimer);
+    sharedStatePollTimer = window.setTimeout(function() {
+        syncSharedGuesses();
+    }, delay);
 }
 
 function normalizeSharedGuess(entry) {
@@ -245,12 +285,41 @@ async function getYesterday() {
 }
 
 async function syncSharedGuesses(highlightedGuess = '') {
-    const response = await fetch('/state/' + puzzleNumber);
-    const state = await response.json();
-    sharedGuesses = (state.guesses || []).map(normalizeSharedGuess);
-    updateGuesses(highlightedGuess);
-    renderLeaderboard();
-    renderStatus();
+    window.clearTimeout(sharedStatePollTimer);
+    const previousSyncPromise = sharedStateSyncPromise;
+    const currentSyncPromise = (async function() {
+        if (previousSyncPromise != null) {
+            try {
+                await previousSyncPromise;
+            } catch (e) {
+                // ignore
+            }
+        }
+        try {
+            const response = await fetch('/state/' + puzzleNumber);
+            const state = await response.json();
+            sharedGuesses = (state.guesses || []).map(normalizeSharedGuess);
+            updateGuesses(highlightedGuess);
+            renderLeaderboard();
+            renderStatus();
+            hasSuccessfulSharedSync = true;
+            setServerStatus('online');
+            return true;
+        } catch (e) {
+            markServerOffline();
+            return false;
+        }
+    })();
+    sharedStateSyncPromise = currentSyncPromise;
+
+    try {
+        return await currentSyncPromise;
+    } finally {
+        if (sharedStateSyncPromise === currentSyncPromise) {
+            sharedStateSyncPromise = null;
+            scheduleNextSharedSync();
+        }
+    }
 }
 
 async function submitGuess(word) {
@@ -258,10 +327,13 @@ async function submitGuess(word) {
     if (userId == null) {
         return { error: 'missing_user_id' };
     }
-    const response = await fetch('/guess/' + puzzleNumber + '/' + word + '?user_id=' + encodeURIComponent(userId));
     try {
+        const response = await fetch('/guess/' + puzzleNumber + '/' + word + '?user_id=' + encodeURIComponent(userId));
+        setServerStatus('online');
         return await response.json();
     } catch (e) {
+        markServerOffline();
+        scheduleNextSharedSync();
         return null;
     }
 }
@@ -272,6 +344,7 @@ function openSettings() {
 
 async function init() {
     setUserIdDisplay();
+    setServerStatus('loading', '서버에 연결 중입니다...');
     $('#user-id-input').addEventListener('input', function(event) {
         if (isComposingUserId) {
             return;
@@ -335,9 +408,6 @@ async function init() {
     $('#dark-mode').checked = darkMode;
 
     await syncSharedGuesses();
-    window.setInterval(function() {
-        syncSharedGuesses();
-    }, 5000);
 
     // $('#give-up-btn').addEventListener('click', async function() {
     //     if (!confirm('정답을 확인하시겠습니까?')) {

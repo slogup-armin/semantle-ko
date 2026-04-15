@@ -33,9 +33,15 @@
 </head>
 
 <body>
-    <!-- include script here so that we can set dark mode of body on initialization -->
-    <script src="https://app.embed.im/snow.js" defer></script>
     <script src="/assets/js/semantle.js?v=20230228"></script>
+    <div id="server-overlay" class="server-overlay" hidden aria-hidden="true">
+        <div class="server-overlay__snow server-overlay__snow--back"></div>
+        <div class="server-overlay__snow server-overlay__snow--front"></div>
+        <div class="server-overlay__message">
+            <strong>서버 연결이 끊어졌습니다.</strong>
+            <span>기존 화면은 유지한 채 5초마다 다시 연결을 시도합니다.</span>
+        </div>
+    </div>
     <a class="banner" href="https://newsjel.ly/?utm_source=semantle_ko&utm_medium=top_banner" target="_blank">
         <img src="/assets/icon.svg" alt="뉴스젤리 로고">
         <span>데이터 활용에 가치를 더하는 데이터 시각화, <b>NEWSJELLY</b></span>
@@ -87,6 +93,7 @@
             <p id="user-id-display"></p>
         </div>
         <p>아래 목록은 오늘 검색된 단어를 유사도 순으로 보여주며, 각 단어 옆에는 최초 검색자의 ID가 표시됩니다.</p>
+        <div id="server-status" class="server-status loading" role="status">서버에 연결 중입니다...</div>
         <div id="error" style="color:#ff0000"></div>
         <form id="form" autocorrect="off" autocapitalize="none" autocomplete="off">
             <div id="form-row">

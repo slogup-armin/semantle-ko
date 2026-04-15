@@ -71,6 +71,10 @@ body.dialog-open {
   overflow: hidden;
 }
 
+body.server-offline {
+  overflow: hidden;
+}
+
 body.settings-open #settings-underlay {
   display: block;
 }
@@ -226,6 +230,97 @@ input[type="button"] {
   font-weight: 600;
 }
 
+.server-status {
+  margin: 0.8em 0 1em;
+  padding: 0.85em 1em;
+  border: 1px solid transparent;
+  border-radius: 0.75em;
+  font-size: 0.95em;
+  font-weight: 600;
+}
+
+.server-status.loading {
+  border-color: #cbd8e6;
+  background: #f4f8fc;
+  color: #33536b;
+}
+
+.server-status.offline {
+  border-color: #f1b5b5;
+  background: #fff2f2;
+  color: #9b2222;
+}
+
+.server-status[hidden] {
+  display: none;
+}
+
+.server-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: rgba(242, 247, 252, 0.22);
+  backdrop-filter: blur(1.5px);
+  overflow: hidden;
+}
+
+.server-overlay[hidden] {
+  display: none;
+}
+
+.server-overlay__snow {
+  position: absolute;
+  inset: -20% 0 0;
+  background-repeat: repeat;
+  animation: snowfall linear infinite;
+  opacity: 0.72;
+}
+
+.server-overlay__snow--back {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 2px, transparent 2.5px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.75) 0 1.5px, transparent 2px);
+  background-size: 120px 120px, 180px 180px;
+  background-position: 10px 0, 80px 60px;
+  animation-duration: 16s;
+}
+
+.server-overlay__snow--front {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.96) 0 3px, transparent 3.5px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.82) 0 2px, transparent 2.5px);
+  background-size: 140px 140px, 220px 220px;
+  background-position: 30px 0, 110px 90px;
+  animation-duration: 10s;
+}
+
+.server-overlay__message {
+  position: absolute;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: min(92vw, 440px);
+  padding: 1rem 1.2rem;
+  border: 1px solid rgba(126, 156, 184, 0.35);
+  border-radius: 1rem;
+  background: rgba(250, 253, 255, 0.88);
+  color: #23435d;
+  box-shadow: 0 10px 40px rgba(40, 72, 99, 0.14);
+  text-align: center;
+}
+
+.server-overlay__message strong {
+  font-size: 1rem;
+}
+
+.server-overlay__message span {
+  font-size: 0.92rem;
+}
+
 #user-id-panel input {
   flex: 1;
   padding: .5em;
@@ -336,6 +431,15 @@ button {
   }
   50% {
     box-shadow: 0 0 0 8px rgba(17, 164, 211, 0.18);
+  }
+}
+
+@keyframes snowfall {
+  from {
+    transform: translate3d(0, -8%, 0);
+  }
+  to {
+    transform: translate3d(-4%, 100%, 0);
   }
 }
 
